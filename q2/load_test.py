@@ -1,21 +1,3 @@
-# from locust import HttpUser, task
-# import random
-
-# class FirehoseUser(HttpUser):
-#     @task
-#     def post_event(self):
-#         payload = {
-#             "user_id": random.randint(1, 1000000),
-#             "timestamp": "2023-10-27T10:00:00Z",
-#             "metadata": {
-#                 "source": "mobile_app",
-#                 "session_id": "abc-123",
-#                 "nested": {"key": "value"}
-#             }
-#         }
-#         self.client.post("/event", json=payload)
-
-
 import asyncio
 import aiohttp
 import time
@@ -24,7 +6,7 @@ from datetime import datetime
 
 URL = "http://127.0.0.1:8002/event"
 TOTAL_REQUESTS = 1000
-CONCURRENCY = 1000  # number of concurrent tasks
+CONCURRENCY = 1000  
 
 def make_payload():
     return {
