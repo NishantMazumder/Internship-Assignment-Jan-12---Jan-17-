@@ -8,18 +8,17 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-# Configuration
 BATCH_SIZE = 500
 FLUSH_INTERVAL = 1.0  
 event_queue = asyncio.Queue()
 
-# Data Model
+# Data class
 class Event(BaseModel):
     user_id: int
     timestamp: str
     metadata: Dict[str, Any]
 
-# 1. Database Setup
+# Database Setup
 def init_db():
     conn = sqlite3.connect("ingestion.db")
 
@@ -34,7 +33,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# 2. Batch Processor (The Consumer)
+# Batch Processor
 async def worker():
     """Background worker to batch write data to SQL."""
     init_db()
@@ -53,7 +52,6 @@ async def worker():
             write_to_db(batch)
         except Exception as e:
             print(f"Database error: {e}")
-            # In a production app, we would implement a retry or Dead Letter Queue here
         finally:
             for _ in range(len(batch)):
                 event_queue.task_done()
@@ -74,10 +72,9 @@ def write_to_db(events: List[Event]):
     conn.commit()
     conn.close()
 
-# 3. API Endpoint (The Producer)
 @app.post("/event", status_code=202)
 async def ingest_event(event: Event):
-    # Non-blocking: Put in queue and return immediately [cite: 17]
+    # Non blocking - Put in queue and return immediately
     await event_queue.put(event)
     return {"status": "accepted"}
 
