@@ -1,0 +1,65 @@
+ARCHITECTURE DESCRIPTION
+High-Throughput Event Ingestion Service
+
+1. OVERVIEW
+   This system is a high-throughput event ingestion API designed to continue accepting HTTP requests even during a temporary database outage. It achieves this using in-memory buffering, asynchronous processing, and batched database writes.
+
+2. HIGH-LEVEL ARCHITECTURE
+
+Client (Load Test / Users)
+|
+|  HTTP POST /event
+v
+FastAPI API Layer (Non-blocking)
+|
+| enqueue(event)
+v
+In-Memory Buffer (asyncio.Queue)
+|
+| batch consumption
+v
+Background Worker (async task)
+|
+| batched inserts
+v
+PostgreSQL DB
+
+3. BUFFERING STRATEGY
+
+* The API uses an in-memory asyncio.Queue as a FIFO buffer.
+* Incoming requests are immediately enqueued and acknowledged with HTTP 202 Accepted.
+* The API never performs database I/O in the request path.
+
+This ensures that the API remains responsive under high load and during database slowdowns.
+
+4. BATCHING STRATEGY
+
+* A background worker coroutine continuously consumes events from the queue.
+* Events are written to the database in batches.
+* Batching significantly reduces database write overhead and contention.
+
+5. DATABASE SAFETY
+
+* Metadata is serialized using JSON before storage.
+* All database operations use parameterized SQL queries.
+* This prevents SQL injection even with arbitrary nested JSON input.
+
+6. DATABASE OUTAGE HANDLING
+
+* A simulated outage is created using an exclusive database lock (BEGIN EXCLUSIVE).
+* During the outage:
+
+  * Database writes fail or block
+  * The API continues accepting requests
+  * Events accumulate safely in memory
+* Once the database lock is released, the background worker resumes writing buffered data.
+
+This demonstrates eventual consistency and fault tolerance.
+
+7. SEPARATION OF CONCERNS
+
+* API Layer: Validation and fast request handling
+* Buffer Layer: Temporary in-memory storage
+* Worker Layer: Batching and persistence
+* Database Layer: Durable storage
+
